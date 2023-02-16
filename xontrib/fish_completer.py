@@ -1,5 +1,3 @@
-"""Populate rich completions using fish and remove the default bash based completer"""
-
 from xonsh.completers import completer
 from xonsh.completers.tools import complete_from_sub_proc, contextual_command_completer
 from xonsh.parsers.completion_context import CommandContext
