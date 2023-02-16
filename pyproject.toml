@@ -1,0 +1,82 @@
+
+[project]
+name = "xontrib-fish-completer"
+version = "0.0.1"
+license = {file = "LICENSE"}
+description = "Populate rich completions using fish and remove the default bash based completer."
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Shells",
+    "Topic :: System :: System Shells",
+    "Topic :: Terminals",
+]
+requires-python = ">=3.8"
+dependencies = ["xonsh>=0.12.5"]
+authors = [
+    { name = "xontrib-fish-completer", email = "no@no.no" },
+]
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+
+
+
+
+[project.urls]
+
+Homepage = "https://github.com/xonsh/xontrib-fish-completer"
+Documentation = "https://github.com/xonsh/xontrib-fish-completer/blob/master/README.md"
+Code = "https://github.com/xonsh/xontrib-fish-completer"
+"Issue tracker" = "https://github.com/xonsh/xontrib-fish-completer/issues"
+
+
+
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-subprocess"]
+
+
+
+[build-system]
+requires = [
+    "setuptools>=62",
+    "wheel",               # for bdist package distribution
+]
+build-backend = "setuptools.build_meta"
+[tool.setuptools]
+
+packages = ["xontrib"]
+package-dir = {xontrib = "xontrib"}
+
+platforms = ["any"]
+include-package-data = false
+[tool.setuptools.package-data]
+
+xontrib = ["*.xsh"]
+
+
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+include = '\.pyi?$'
+force-exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.tox
+  | \.vscode
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | disk-cache.sqlite3
+)/
+'''
