@@ -20,6 +20,7 @@ xpip install xontrib-fish-completer
 
 ```bash
 xontrib load fish_completer
+ls -<Tab>
 ```
 
 ## Credits
