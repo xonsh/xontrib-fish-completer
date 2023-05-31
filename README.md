@@ -9,7 +9,9 @@ If you like the idea click ⭐ on the repo and <a href="https://twitter.com/inte
 
 ## Installation
 
-To install use pip:
+First of all install [fish shell](https://github.com/fish-shell/fish-shell#getting-fish).
+
+To install the xontrib use xpip:
 
 ```bash
 xpip install xontrib-fish-completer
