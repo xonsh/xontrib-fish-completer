@@ -1,7 +1,7 @@
 
 [project]
 name = "xontrib-fish-completer"
-version = "0.0.1"
+version = "0.0.2"
 license = {file = "LICENSE"}
 description = "Populate rich completions using fish and remove the default bash based completer."
 classifiers = [
