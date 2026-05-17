@@ -12,8 +12,8 @@ classifiers = [
     "Topic :: System :: System Shells",
     "Topic :: Terminals",
 ]
-requires-python = ">=3.8"
-dependencies = ["xonsh>=0.12.5"]
+requires-python = ">=3.11"
+dependencies = ["xonsh>=0.23.0"]
 authors = [
     { name = "xontrib-fish-completer", email = "no@no.no" },
 ]
