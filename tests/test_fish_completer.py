@@ -183,6 +183,63 @@ def test_fish_completer_strips_quotes_from_command_name(
     assert args[3] != '"my cmd"'
 
 
+def test_fish_completer_placed_before_bash(xession, load_xontrib):
+    """When bash is registered, fish must be inserted immediately before it."""
+    from xonsh.built_ins import XSH
+
+    noop = lambda *a, **kw: None
+    XSH.completers.clear()
+    XSH.completers["alias"] = noop
+    XSH.completers["bash"] = noop
+    XSH.completers["man"] = noop
+    XSH.completers["path"] = noop
+
+    load_xontrib("fish_completer")
+
+    keys = list(XSH.completers.keys())
+    assert keys.index("fish") < keys.index("bash")
+
+
+def test_fish_completer_falls_back_to_man_without_bash(xession, load_xontrib):
+    """Without bash (e.g. systems where it isn't on PATH), fish must anchor
+    on the next available completer (man), not be appended to the end of
+    the list past the exclusive ``path`` completer.
+    """
+    from xonsh.built_ins import XSH
+
+    noop = lambda *a, **kw: None
+    XSH.completers.clear()
+    XSH.completers["alias"] = noop
+    XSH.completers["man"] = noop
+    XSH.completers["path"] = noop
+
+    load_xontrib("fish_completer")
+
+    keys = list(XSH.completers.keys())
+    assert "fish" in keys
+    assert keys.index("fish") < keys.index("man")
+    assert keys.index("fish") < keys.index("path")
+
+
+def test_fish_completer_falls_back_to_path_on_windows(xession, load_xontrib):
+    """Windows scenario: bash and man are absent — anchor on ``path``.
+    Without this fallback, ``add_one_completer`` would silently append fish
+    after ``path`` and fish would never be reached.
+    """
+    from xonsh.built_ins import XSH
+
+    noop = lambda *a, **kw: None
+    XSH.completers.clear()
+    XSH.completers["alias"] = noop
+    XSH.completers["path"] = noop
+
+    load_xontrib("fish_completer")
+
+    keys = list(XSH.completers.keys())
+    assert "fish" in keys
+    assert keys.index("fish") < keys.index("path")
+
+
 def test_fish_completer_survives_semicolon_in_line(loaded_xontrib, fake_process):
     """Regression: a ``;`` in the line must not be interpreted as a fish
     command separator. Previously ``complete -C 'git status; ls /tmp'`` ran
