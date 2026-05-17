@@ -9,7 +9,10 @@ _FISH_SCRIPT = "complete --no-files -- $argv[1]; complete -C -- $argv[2]"
 
 @contextual_command_completer
 def fish_proc_completer(ctx: CommandContext):
-    if not ctx.args:
+    # only complete command arguments; the command name itself is handled by
+    # ``complete_base``. Bailing out here also avoids ``text_before_cursor``
+    # returning a string with a stray leading space when ``arg_index == 0``.
+    if ctx.arg_index < 1:
         return
 
     return (

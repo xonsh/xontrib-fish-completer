@@ -131,6 +131,32 @@ def test_fish_completer_survives_single_quote_in_line(
     assert "'fix" in args[4]
 
 
+def test_fish_completer_skips_command_name_completion(
+    loaded_xontrib, fake_process
+):
+    """When ``arg_index == 0`` the user is still typing the command name —
+    ``complete_base`` owns that case. fish must not be invoked.
+
+    This also guards against the ``text_before_cursor`` quirk where
+    ``words_before_cursor`` is empty and the property returns a string
+    with a stray leading space (e.g. ``" gi"``).
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"git\tThe git command",
+    )
+
+    ctx = CommandContext(
+        args=(CommandArg("gi"),),
+        arg_index=0,
+        prefix="gi",
+    )
+    completions, _ = _run_fish_completer(ctx)
+
+    assert completions == []
+    assert recorder.call_count() == 0
+
+
 def test_fish_completer_strips_quotes_from_command_name(
     loaded_xontrib, fake_process
 ):
