@@ -183,6 +183,31 @@ def test_fish_completer_strips_quotes_from_command_name(
     assert args[3] != '"my cmd"'
 
 
+def test_fish_completer_strips_noise_descriptions(loaded_xontrib, fake_process):
+    """Fish prints ``command link`` as a placeholder description for plain
+    PATH entries that lack real completion metadata. It's not informative
+    and just clutters the UI, so it must be stripped while real
+    descriptions are preserved verbatim.
+    """
+    fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        # mix: one noisy placeholder, one real description
+        stdout=b"gif2rgb\tcommand link\ngifsicle\tGIF image manipulation tool",
+    )
+
+    ctx = CommandContext(
+        args=(CommandArg("which"),),
+        arg_index=1,
+        prefix="gif",
+    )
+    completions, _ = _run_fish_completer(ctx)
+
+    by_value = {str(c): c for c in completions}
+    assert set(by_value) == {"gif2rgb", "gifsicle"}
+    assert by_value["gif2rgb"].description == ""
+    assert by_value["gifsicle"].description == "GIF image manipulation tool"
+
+
 def test_fish_completer_placed_before_bash(xession, load_xontrib):
     """When bash is registered, fish must be inserted immediately before it."""
     from xonsh.built_ins import XSH

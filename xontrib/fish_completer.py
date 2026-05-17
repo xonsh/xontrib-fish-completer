@@ -1,11 +1,30 @@
 """Populate rich completions using fish, taking precedence over the default bash based completer."""
 from xonsh.built_ins import XSH
 from xonsh.completers import completer
-from xonsh.completers.tools import complete_from_sub_proc, contextual_command_completer
+from xonsh.completers.tools import (
+    RichCompletion,
+    complete_from_sub_proc,
+    contextual_command_completer,
+)
 from xonsh.parsers.completion_context import CommandContext
 
 
 _FISH_SCRIPT = "complete --no-files -- $argv[1]; complete -C -- $argv[2]"
+
+# Descriptions fish emits as placeholders for PATH commands without real
+# completion metadata. They're not informative and just clutter the UI.
+_NOISE_DESCRIPTIONS = frozenset({"command link"})
+
+
+def _denoise(completions):
+    for comp in completions:
+        if (
+            isinstance(comp, RichCompletion)
+            and comp.description in _NOISE_DESCRIPTIONS
+        ):
+            yield comp.replace(description="")
+        else:
+            yield comp
 
 
 @contextual_command_completer
@@ -17,12 +36,14 @@ def fish_proc_completer(ctx: CommandContext):
         return
 
     return (
-        complete_from_sub_proc(
-            "fish",
-            "-c",
-            _FISH_SCRIPT,
-            ctx.args[0].value,
-            ctx.text_before_cursor,
+        _denoise(
+            complete_from_sub_proc(
+                "fish",
+                "-c",
+                _FISH_SCRIPT,
+                ctx.args[0].value,
+                ctx.text_before_cursor,
+            )
         ),
         False,
     )
