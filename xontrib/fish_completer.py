@@ -17,7 +17,7 @@ def fish_proc_completer(ctx: CommandContext):
             "fish",
             "-c",
             _FISH_SCRIPT,
-            ctx.command,
+            ctx.args[0].value,
             ctx.text_before_cursor,
         ),
         False,

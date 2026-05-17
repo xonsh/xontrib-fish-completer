@@ -131,6 +131,32 @@ def test_fish_completer_survives_single_quote_in_line(
     assert "'fix" in args[4]
 
 
+def test_fish_completer_strips_quotes_from_command_name(
+    loaded_xontrib, fake_process
+):
+    """The command name passed to ``complete --no-files`` must be the bare
+    value, not the quoted ``raw_value``. Otherwise an invocation like
+    ``"my cmd" --<TAB>`` would tell fish ``complete --no-files "my cmd"``,
+    embedding the quotes into the command identifier.
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"--help\tShow help",
+    )
+
+    ctx = CommandContext(
+        args=(CommandArg("my cmd", opening_quote='"', closing_quote='"'),),
+        arg_index=1,
+        prefix="--",
+    )
+    _run_fish_completer(ctx)
+
+    args = list(recorder.calls[0].args)
+    # argv[1] is the command name fish sees in `complete --no-files -- $argv[1]`
+    assert args[3] == "my cmd"
+    assert args[3] != '"my cmd"'
+
+
 def test_fish_completer_survives_semicolon_in_line(loaded_xontrib, fake_process):
     """Regression: a ``;`` in the line must not be interpreted as a fish
     command separator. Previously ``complete -C 'git status; ls /tmp'`` ran
