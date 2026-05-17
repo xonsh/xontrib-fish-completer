@@ -60,3 +60,7 @@ def _load_xontrib_(**_):
         if anchor in XSH.completers:
             completer.add_one_completer("fish", fish_proc_completer, f"<{anchor}")
             return
+
+
+def _unload_xontrib_(*_, **__):
+    XSH.completers.pop("fish", None)

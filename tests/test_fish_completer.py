@@ -208,6 +208,34 @@ def test_fish_completer_strips_noise_descriptions(loaded_xontrib, fake_process):
     assert by_value["gifsicle"].description == "GIF image manipulation tool"
 
 
+def test_fish_completer_unload_removes_completer(xession, load_xontrib):
+    """``xontrib unload fish_completer`` must drop the completer; reloading
+    must restore it. Also covers the case where unload is called without a
+    prior load — it must not raise.
+    """
+    from xonsh.built_ins import XSH
+    from xontrib.fish_completer import _unload_xontrib_
+
+    noop = lambda *a, **kw: None
+    XSH.completers.clear()
+    XSH.completers["bash"] = noop
+    XSH.completers["path"] = noop
+
+    # unload before load is a no-op
+    _unload_xontrib_(XSH)
+    assert "fish" not in XSH.completers
+
+    load_xontrib("fish_completer")
+    assert "fish" in XSH.completers
+
+    _unload_xontrib_(XSH)
+    assert "fish" not in XSH.completers
+
+    # reload works after unload
+    load_xontrib("fish_completer")
+    assert "fish" in XSH.completers
+
+
 def test_fish_completer_placed_before_bash(xession, load_xontrib):
     """When bash is registered, fish must be inserted immediately before it."""
     from xonsh.built_ins import XSH
