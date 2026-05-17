@@ -265,6 +265,74 @@ def test_fish_completer_falls_back_to_path_on_windows(xession, load_xontrib):
     assert keys.index("fish") < keys.index("path")
 
 
+def test_fish_completer_handles_missing_fish_binary(loaded_xontrib, monkeypatch):
+    """If fish is not in PATH, the completer must not raise — it just
+    returns nothing so the pipeline falls back to bash.
+    """
+    import subprocess
+
+    def _missing(*a, **kw):
+        raise FileNotFoundError("fish not found")
+
+    monkeypatch.setattr(subprocess, "run", _missing)
+
+    ctx = CommandContext(
+        args=(CommandArg("git"),), arg_index=1, prefix="chec"
+    )
+    completions, _ = _run_fish_completer(ctx)
+    assert completions == []
+
+
+@pytest.mark.parametrize("stdout", [b"", b"\n\n   \n"])
+def test_fish_completer_handles_empty_output(
+    loaded_xontrib, fake_process, stdout
+):
+    """Empty or whitespace-only output from fish yields no completions."""
+    fake_process.register_subprocess(
+        command=["fish", fake_process.any()], stdout=stdout
+    )
+    ctx = CommandContext(
+        args=(CommandArg("git"),), arg_index=1, prefix="zz"
+    )
+    completions, _ = _run_fish_completer(ctx)
+    assert completions == []
+
+
+def test_fish_completer_preserves_description_special_chars(
+    loaded_xontrib, fake_process
+):
+    """Descriptions with spaces and punctuation are passed through verbatim."""
+    fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"--help\tShow help message (with: special, chars!)",
+    )
+    ctx = CommandContext(
+        args=(CommandArg("git"),), arg_index=1, prefix="--"
+    )
+    completions, _ = _run_fish_completer(ctx)
+    assert len(completions) == 1
+    assert completions[0].description == "Show help message (with: special, chars!)"
+
+
+def test_fish_completer_forwards_trailing_space_in_line(
+    loaded_xontrib, fake_process
+):
+    """``git <TAB>`` — empty prefix, line ends with a space. The trailing
+    space must reach fish verbatim so fish knows to list subcommands.
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"add\tAdd file contents",
+    )
+    ctx = CommandContext(
+        args=(CommandArg("git"),), arg_index=1, prefix=""
+    )
+    completions, _ = _run_fish_completer(ctx)
+    assert {str(c) for c in completions} == {"add"}
+    args = list(recorder.calls[0].args)
+    assert args[4].endswith(" ")
+
+
 def test_fish_completer_survives_semicolon_in_line(loaded_xontrib, fake_process):
     """Regression: a ``;`` in the line must not be interpreted as a fish
     command separator. Previously ``complete -C 'git status; ls /tmp'`` ran
