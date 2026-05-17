@@ -1,5 +1,5 @@
 <p align="center">
-Populate rich completions using fish and remove the default bash based completer in xonsh shell.
+Populate rich completions using fish, taking precedence over the default bash based completer in xonsh shell. The bash completer remains registered and is used as a fallback when fish has no completion for the command.
 </p>
 
 <p align="center">

@@ -13,14 +13,12 @@ repos:
     rev: 26.3.1
     hooks:
       - id: black
-        language_version: python3.9
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v2.0.0" # Use the sha / tag you want to point at
     hooks:
       - id: mypy
-        args: [ "--allow-untyped-globals", "--ignore-missing-imports" ]
-        additional_dependencies: [ types-all ]
+        args: [ "--allow-untyped-globals", "--ignore-missing-imports", "--explicit-package-bases" ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
