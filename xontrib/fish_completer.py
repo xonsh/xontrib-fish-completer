@@ -1,4 +1,5 @@
 """Populate rich completions using fish, taking precedence over the default bash based completer."""
+
 from xonsh.built_ins import XSH
 from xonsh.completers import completer
 from xonsh.completers.tools import (
@@ -7,7 +8,6 @@ from xonsh.completers.tools import (
     contextual_command_completer,
 )
 from xonsh.parsers.completion_context import CommandContext
-
 
 _FISH_SCRIPT = "complete --no-files -- $argv[1]; complete -C -- $argv[2]"
 
@@ -18,10 +18,7 @@ _NOISE_DESCRIPTIONS = frozenset({"command link"})
 
 def _denoise(completions):
     for comp in completions:
-        if (
-            isinstance(comp, RichCompletion)
-            and comp.description in _NOISE_DESCRIPTIONS
-        ):
+        if isinstance(comp, RichCompletion) and comp.description in _NOISE_DESCRIPTIONS:
             yield comp.replace(description="")
         else:
             yield comp

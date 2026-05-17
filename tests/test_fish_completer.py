@@ -1,6 +1,9 @@
 import pytest
-
 from xonsh.parsers.completion_context import CommandArg, CommandContext
+
+
+def _noop(*_, **__):
+    return None
 
 
 @pytest.fixture
@@ -55,9 +58,7 @@ def _run_fish_completer(ctx):
     return list(result), None
 
 
-def test_fish_completer_passes_command_and_line_as_argv(
-    loaded_xontrib, fake_process
-):
+def test_fish_completer_passes_command_and_line_as_argv(loaded_xontrib, fake_process):
     """fish must receive the command and line as separate argv entries, not
     interpolated into the script. Otherwise quotes / semicolons / backticks
     in the line break the generated fish script.
@@ -93,9 +94,7 @@ def test_fish_completer_passes_command_and_line_as_argv(
     assert args[4].endswith("chec")
 
 
-def test_fish_completer_survives_single_quote_in_line(
-    loaded_xontrib, fake_process
-):
+def test_fish_completer_survives_single_quote_in_line(loaded_xontrib, fake_process):
     """Regression: a single quote in the line must not break the completer.
 
     The previous implementation built the fish script via
@@ -131,9 +130,7 @@ def test_fish_completer_survives_single_quote_in_line(
     assert "'fix" in args[4]
 
 
-def test_fish_completer_skips_command_name_completion(
-    loaded_xontrib, fake_process
-):
+def test_fish_completer_skips_command_name_completion(loaded_xontrib, fake_process):
     """When ``arg_index == 0`` the user is still typing the command name —
     ``complete_base`` owns that case. fish must not be invoked.
 
@@ -157,9 +154,7 @@ def test_fish_completer_skips_command_name_completion(
     assert recorder.call_count() == 0
 
 
-def test_fish_completer_strips_quotes_from_command_name(
-    loaded_xontrib, fake_process
-):
+def test_fish_completer_strips_quotes_from_command_name(loaded_xontrib, fake_process):
     """The command name passed to ``complete --no-files`` must be the bare
     value, not the quoted ``raw_value``. Otherwise an invocation like
     ``"my cmd" --<TAB>`` would tell fish ``complete --no-files "my cmd"``,
@@ -214,12 +209,12 @@ def test_fish_completer_unload_removes_completer(xession, load_xontrib):
     prior load — it must not raise.
     """
     from xonsh.built_ins import XSH
+
     from xontrib.fish_completer import _unload_xontrib_
 
-    noop = lambda *a, **kw: None
     XSH.completers.clear()
-    XSH.completers["bash"] = noop
-    XSH.completers["path"] = noop
+    XSH.completers["bash"] = _noop
+    XSH.completers["path"] = _noop
 
     # unload before load is a no-op
     _unload_xontrib_(XSH)
@@ -240,12 +235,11 @@ def test_fish_completer_placed_before_bash(xession, load_xontrib):
     """When bash is registered, fish must be inserted immediately before it."""
     from xonsh.built_ins import XSH
 
-    noop = lambda *a, **kw: None
     XSH.completers.clear()
-    XSH.completers["alias"] = noop
-    XSH.completers["bash"] = noop
-    XSH.completers["man"] = noop
-    XSH.completers["path"] = noop
+    XSH.completers["alias"] = _noop
+    XSH.completers["bash"] = _noop
+    XSH.completers["man"] = _noop
+    XSH.completers["path"] = _noop
 
     load_xontrib("fish_completer")
 
@@ -260,11 +254,10 @@ def test_fish_completer_falls_back_to_man_without_bash(xession, load_xontrib):
     """
     from xonsh.built_ins import XSH
 
-    noop = lambda *a, **kw: None
     XSH.completers.clear()
-    XSH.completers["alias"] = noop
-    XSH.completers["man"] = noop
-    XSH.completers["path"] = noop
+    XSH.completers["alias"] = _noop
+    XSH.completers["man"] = _noop
+    XSH.completers["path"] = _noop
 
     load_xontrib("fish_completer")
 
@@ -281,10 +274,9 @@ def test_fish_completer_falls_back_to_path_on_windows(xession, load_xontrib):
     """
     from xonsh.built_ins import XSH
 
-    noop = lambda *a, **kw: None
     XSH.completers.clear()
-    XSH.completers["alias"] = noop
-    XSH.completers["path"] = noop
+    XSH.completers["alias"] = _noop
+    XSH.completers["path"] = _noop
 
     load_xontrib("fish_completer")
 
@@ -304,24 +296,18 @@ def test_fish_completer_handles_missing_fish_binary(loaded_xontrib, monkeypatch)
 
     monkeypatch.setattr(subprocess, "run", _missing)
 
-    ctx = CommandContext(
-        args=(CommandArg("git"),), arg_index=1, prefix="chec"
-    )
+    ctx = CommandContext(args=(CommandArg("git"),), arg_index=1, prefix="chec")
     completions, _ = _run_fish_completer(ctx)
     assert completions == []
 
 
 @pytest.mark.parametrize("stdout", [b"", b"\n\n   \n"])
-def test_fish_completer_handles_empty_output(
-    loaded_xontrib, fake_process, stdout
-):
+def test_fish_completer_handles_empty_output(loaded_xontrib, fake_process, stdout):
     """Empty or whitespace-only output from fish yields no completions."""
     fake_process.register_subprocess(
         command=["fish", fake_process.any()], stdout=stdout
     )
-    ctx = CommandContext(
-        args=(CommandArg("git"),), arg_index=1, prefix="zz"
-    )
+    ctx = CommandContext(args=(CommandArg("git"),), arg_index=1, prefix="zz")
     completions, _ = _run_fish_completer(ctx)
     assert completions == []
 
@@ -334,17 +320,13 @@ def test_fish_completer_preserves_description_special_chars(
         command=["fish", fake_process.any()],
         stdout=b"--help\tShow help message (with: special, chars!)",
     )
-    ctx = CommandContext(
-        args=(CommandArg("git"),), arg_index=1, prefix="--"
-    )
+    ctx = CommandContext(args=(CommandArg("git"),), arg_index=1, prefix="--")
     completions, _ = _run_fish_completer(ctx)
     assert len(completions) == 1
     assert completions[0].description == "Show help message (with: special, chars!)"
 
 
-def test_fish_completer_forwards_trailing_space_in_line(
-    loaded_xontrib, fake_process
-):
+def test_fish_completer_forwards_trailing_space_in_line(loaded_xontrib, fake_process):
     """``git <TAB>`` — empty prefix, line ends with a space. The trailing
     space must reach fish verbatim so fish knows to list subcommands.
     """
@@ -352,9 +334,7 @@ def test_fish_completer_forwards_trailing_space_in_line(
         command=["fish", fake_process.any()],
         stdout=b"add\tAdd file contents",
     )
-    ctx = CommandContext(
-        args=(CommandArg("git"),), arg_index=1, prefix=""
-    )
+    ctx = CommandContext(args=(CommandArg("git"),), arg_index=1, prefix="")
     completions, _ = _run_fish_completer(ctx)
     assert {str(c) for c in completions} == {"add"}
     args = list(recorder.calls[0].args)
