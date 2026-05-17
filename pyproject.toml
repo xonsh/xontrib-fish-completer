@@ -1,7 +1,7 @@
 
 [project]
 name = "xontrib-fish-completer"
-version = "0.0.2"
+version = "0.0.3"
 license = {file = "LICENSE"}
 description = "Populate rich completions using fish, taking precedence over the default bash based completer."
 classifiers = [
@@ -15,7 +15,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = ["xonsh>=0.23.0"]
 authors = [
-    { name = "xontrib-fish-completer", email = "no@no.no" },
+    { name = "Xonsh Maintainers", email = "xore.004fdbd5c8e6589bdd80944b5b8d4100.show-sender@streams.zulipchat.com" },
 ]
 [project.readme]
 file = "README.md"
