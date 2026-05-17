@@ -4,22 +4,21 @@ from xonsh.completers.tools import complete_from_sub_proc, contextual_command_co
 from xonsh.parsers.completion_context import CommandContext
 
 
+_FISH_SCRIPT = "complete --no-files -- $argv[1]; complete -C -- $argv[2]"
+
+
 @contextual_command_completer
 def fish_proc_completer(ctx: CommandContext):
     if not ctx.args:
         return
-    line = ctx.text_before_cursor
-
-    script_lines = [
-        f"complete --no-files {ctx.command}",  # switch off basic file completions for the executable
-        f"complete -C '{line}'",
-    ]
 
     return (
         complete_from_sub_proc(
             "fish",
             "-c",
-            "; ".join(script_lines),
+            _FISH_SCRIPT,
+            ctx.command,
+            ctx.text_before_cursor,
         ),
         False,
     )

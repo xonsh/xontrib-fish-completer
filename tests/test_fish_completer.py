@@ -1,5 +1,7 @@
 import pytest
 
+from xonsh.parsers.completion_context import CommandArg, CommandContext
+
 
 @pytest.fixture
 def fish_completer(tmpdir, xession, load_xontrib, fake_process):
@@ -25,3 +27,129 @@ checkout	Checkout and switch to a branch""",
 
 def test_fish_completer(fish_completer, check_completer):
     assert check_completer("git", prefix="chec") == {"checkout"}
+
+
+@pytest.fixture
+def loaded_xontrib(tmpdir, xession, load_xontrib):
+    load_xontrib("fish_completer")
+    xession.env.update(
+        dict(
+            XONSH_DATA_DIR=str(tmpdir),
+            XONSH_SHOW_TRACEBACK=True,
+        )
+    )
+
+
+def _run_fish_completer(ctx):
+    """Invoke the registered fish completer directly with a CommandContext."""
+    from xonsh.built_ins import XSH
+    from xonsh.parsers.completion_context import CompletionContext
+
+    completer = XSH.completers["fish"]
+    result = completer(CompletionContext(command=ctx))
+    if result is None:
+        return [], None
+    if isinstance(result, tuple):
+        gen, extra = result
+        return list(gen), extra
+    return list(result), None
+
+
+def test_fish_completer_passes_command_and_line_as_argv(
+    loaded_xontrib, fake_process
+):
+    """fish must receive the command and line as separate argv entries, not
+    interpolated into the script. Otherwise quotes / semicolons / backticks
+    in the line break the generated fish script.
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"checkout\tCheckout and switch to a branch",
+    )
+
+    ctx = CommandContext(
+        args=(CommandArg("git"),),
+        arg_index=1,
+        prefix="chec",
+    )
+    completions, _ = _run_fish_completer(ctx)
+
+    assert {str(c) for c in completions} == {"checkout"}
+    assert recorder.call_count() == 1
+
+    args = list(recorder.calls[0].args)
+    # fish is invoked as: fish -c <script> <command> <line>
+    assert args[0] == "fish"
+    assert args[1] == "-c"
+
+    script = args[2]
+    # script template references $argv — user input is never embedded
+    assert "$argv" in script
+    assert "chec" not in script
+    assert "git" not in script
+
+    # the actual values land as positional argv entries
+    assert args[3] == "git"
+    assert args[4].endswith("chec")
+
+
+def test_fish_completer_survives_single_quote_in_line(
+    loaded_xontrib, fake_process
+):
+    """Regression: a single quote in the line must not break the completer.
+
+    The previous implementation built the fish script via
+    ``f"complete -C '{line}'"``, so any single quote in the line broke
+    fish's argument parsing and the completer silently returned nothing.
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"--amend\tAmend the previous commit",
+    )
+
+    # User typed:  git commit -m 'fix --
+    # CommandContext for completing the trailing "--" prefix.
+    ctx = CommandContext(
+        args=(
+            CommandArg("git"),
+            CommandArg("commit"),
+            CommandArg("-m"),
+            CommandArg("fix", opening_quote="'"),
+        ),
+        arg_index=4,
+        prefix="--",
+    )
+    completions, _ = _run_fish_completer(ctx)
+
+    assert {str(c) for c in completions} == {"--amend"}
+
+    args = list(recorder.calls[0].args)
+    script = args[2]
+    # the script must not contain user-provided characters at all
+    assert "'" not in script
+    # but the line passed via argv carries the quote verbatim
+    assert "'fix" in args[4]
+
+
+def test_fish_completer_survives_semicolon_in_line(loaded_xontrib, fake_process):
+    """Regression: a ``;`` in the line must not be interpreted as a fish
+    command separator. Previously ``complete -C 'git status; ls /tmp'`` ran
+    a real ``ls`` inside fish.
+    """
+    recorder = fake_process.register_subprocess(
+        command=["fish", fake_process.any()],
+        stdout=b"--all\tShow all",
+    )
+
+    ctx = CommandContext(
+        args=(CommandArg("git"), CommandArg("status;")),
+        arg_index=2,
+        prefix="--",
+    )
+    completions, _ = _run_fish_completer(ctx)
+
+    assert {str(c) for c in completions} == {"--all"}
+    args = list(recorder.calls[0].args)
+    # the user-typed token is in argv, not interpolated into the script
+    assert "status" not in args[2]
+    assert "status;" in args[4]
